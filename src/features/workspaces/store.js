@@ -1,8 +1,4 @@
-import {
-  computed,
-  observable,
-  action,
-} from 'mobx';
+import { computed, observable, action } from 'mobx';
 import localStorage from 'mobx-localstorage';
 import { matchRoute } from '../../helpers/routing-helpers';
 import { workspaceActions } from './actions';
@@ -97,7 +93,10 @@ export default class WorkspacesStore extends FeatureStore {
       [workspaceActions.update, this._update],
       [workspaceActions.activate, this._setActiveWorkspace],
       [workspaceActions.deactivate, this._deactivateActiveWorkspace],
-      [workspaceActions.toggleKeepAllWorkspacesLoadedSetting, this._toggleKeepAllWorkspacesLoadedSetting],
+      [
+        workspaceActions.toggleKeepAllWorkspacesLoadedSetting,
+        this._toggleKeepAllWorkspacesLoadedSetting,
+      ],
     ]);
     this._allActions = this._freeUserActions.concat(this._premiumUserActions);
     this._registerActions(this._allActions);
@@ -116,7 +115,9 @@ export default class WorkspacesStore extends FeatureStore {
       this._activateLastUsedWorkspaceReaction,
       this._setWorkspaceBeingEditedReaction,
     ]);
-    this._allReactions = this._freeUserReactions.concat(this._premiumUserReactions);
+    this._allReactions = this._freeUserReactions.concat(
+      this._premiumUserReactions,
+    );
 
     this._registerReactions(this._allReactions);
 
@@ -227,7 +228,9 @@ export default class WorkspacesStore extends FeatureStore {
       this.activeWorkspace = null;
     }, 100);
     // Indicate that we are done switching to the default workspace
-    setTimeout(() => { this.isSwitchingWorkspace = false; }, 1000);
+    setTimeout(() => {
+      this.isSwitchingWorkspace = false;
+    }, 1000);
   };
 
   @action _toggleWorkspaceDrawer = () => {
@@ -247,7 +250,9 @@ export default class WorkspacesStore extends FeatureStore {
   };
 
   _toggleKeepAllWorkspacesLoadedSetting = async () => {
-    this._updateSettings({ keepAllWorkspacesLoaded: !this.settings.keepAllWorkspacesLoaded });
+    this._updateSettings({
+      keepAllWorkspacesLoaded: !this.settings.keepAllWorkspacesLoaded,
+    });
   };
 
   // Reactions
@@ -258,8 +263,6 @@ export default class WorkspacesStore extends FeatureStore {
   };
 
   _setIsPremiumFeatureReaction = () => {
-    const { features } = this.stores;
-    const { isWorkspaceIncludedInCurrentPlan } = features.features;
     this.isPremiumFeature = true;
     this.isPremiumUpgradeRequired = false;
   };
@@ -278,7 +281,9 @@ export default class WorkspacesStore extends FeatureStore {
       const activeService = this.stores.services.active;
       const workspaceServices = this.getWorkspaceServices(this.activeWorkspace);
       if (workspaceServices.length <= 0) return;
-      const isActiveServiceInWorkspace = workspaceServices.includes(activeService);
+      const isActiveServiceInWorkspace = workspaceServices.includes(
+        activeService,
+      );
       if (!isActiveServiceInWorkspace) {
         this.actions.service.setActive({
           serviceId: workspaceServices[0].id,
@@ -301,7 +306,9 @@ export default class WorkspacesStore extends FeatureStore {
 
   _openDrawerWithSettingsReaction = () => {
     const { router } = this.stores;
-    const isWorkspaceSettingsRoute = router.location.pathname.includes(WORKSPACES_ROUTES.ROOT);
+    const isWorkspaceSettingsRoute = router.location.pathname.includes(
+      WORKSPACES_ROUTES.ROOT,
+    );
     const isSwitchingToSettingsRoute = !this.isSettingsRouteActive && isWorkspaceSettingsRoute;
     const isLeavingSettingsRoute = !isWorkspaceSettingsRoute && this.isSettingsRouteActive;
 
@@ -313,7 +320,10 @@ export default class WorkspacesStore extends FeatureStore {
       }
     } else if (isLeavingSettingsRoute) {
       this.isSettingsRouteActive = false;
-      if (!this._wasDrawerOpenBeforeSettingsRoute && this.isWorkspaceDrawerOpen) {
+      if (
+        !this._wasDrawerOpenBeforeSettingsRoute
+        && this.isWorkspaceDrawerOpen
+      ) {
         workspaceActions.toggleWorkspaceDrawer();
       }
     }
@@ -343,5 +353,5 @@ export default class WorkspacesStore extends FeatureStore {
       this._startActions(this._premiumUserActions);
       this._startReactions(this._premiumUserReactions);
     }
-  }
+  };
 }
