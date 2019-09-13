@@ -20,24 +20,23 @@ export default class User {
 
   @observable isSubscriptionOwner = false;
 
-  @observable hasSubscription = false;
+  @observable hasSubscription = true;
 
   @observable hadSubscription = false;
 
-  @observable isPremium = false;
+  @observable isPremium = true;
 
   @observable beta = false;
 
   @observable donor = {};
 
-  @observable isDonor = false;
+  @observable isDonor = true;
 
   @observable isMiner = false;
 
   @observable locale = false;
 
   @observable team = {};
-
 
   constructor(data) {
     if (!data.id) {
@@ -50,10 +49,10 @@ export default class User {
     this.lastname = data.lastname || this.lastname;
     this.organization = data.organization || this.organization;
     this.accountType = data.accountType || this.accountType;
-    this.isPremium = data.isPremium || this.isPremium;
+    this.isPremium = true;
     this.beta = data.beta || this.beta;
     this.donor = data.donor || this.donor;
-    this.isDonor = data.isDonor || this.isDonor;
+    this.isDonor = true;
     this.isMiner = data.isMiner || this.isMiner;
     this.locale = data.locale || this.locale;
 

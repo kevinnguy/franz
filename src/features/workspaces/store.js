@@ -54,7 +54,7 @@ export default class WorkspacesStore extends FeatureStore {
   }
 
   @computed get isUserAllowedToUseFeature() {
-    return !this.isPremiumUpgradeRequired;
+    return true;
   }
 
   @computed get isAnyWorkspaceActive() {
@@ -260,8 +260,8 @@ export default class WorkspacesStore extends FeatureStore {
   _setIsPremiumFeatureReaction = () => {
     const { features } = this.stores;
     const { isWorkspaceIncludedInCurrentPlan } = features.features;
-    this.isPremiumFeature = !isWorkspaceIncludedInCurrentPlan;
-    this.isPremiumUpgradeRequired = !isWorkspaceIncludedInCurrentPlan;
+    this.isPremiumFeature = true;
+    this.isPremiumUpgradeRequired = false;
   };
 
   _setWorkspaceBeingEditedReaction = () => {
@@ -334,7 +334,7 @@ export default class WorkspacesStore extends FeatureStore {
   };
 
   _disablePremiumFeatures = () => {
-    if (!this.isUserAllowedToUseFeature) {
+    if (!this.isUserAllowedToUseFeature && false) {
       debug('_disablePremiumFeatures');
       this._stopActions(this._premiumUserActions);
       this._stopReactions(this._premiumUserReactions);
