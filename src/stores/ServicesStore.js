@@ -6,6 +6,7 @@ import {
 } from 'mobx';
 import { debounce, remove } from 'lodash';
 import ms from 'ms';
+import { remote } from 'electron';
 
 import Store from './lib/Store';
 import Request from './lib/Request';
@@ -17,6 +18,8 @@ import { serviceLimitStore } from '../features/serviceLimit';
 import { RESTRICTION_TYPES } from '../models/Service';
 
 const debug = require('debug')('Franz:ServiceStore');
+
+const { app } = remote;
 
 export default class ServicesStore extends Store {
   @observable allServicesRequest = new CachedRequest(this.api.services, 'all');
@@ -345,6 +348,7 @@ export default class ServicesStore extends Store {
       service.initializeWebViewEvents({
         handleIPCMessage: this.actions.service.handleIPCMessage,
         openWindow: this.actions.service.openWindow,
+        stores: this.stores,
       });
       service.initializeWebViewListener();
     }
@@ -683,6 +687,8 @@ export default class ServicesStore extends Store {
     const serviceData = data;
     const recipe = this.stores.recipes.one(recipeId);
 
+    if (!recipe) return;
+
     if (recipe.hasTeamId && recipe.hasCustomUrl && data.team && data.customUrl) {
       delete serviceData.team;
     }
@@ -725,7 +731,9 @@ export default class ServicesStore extends Store {
 
     if (service.webview) {
       debug('Initialize recipe', service.recipe.id, service.name);
-      service.webview.send('initialize-recipe', service.shareWithWebview, service.recipe);
+      service.webview.send('initialize-recipe', Object.assign({
+        franzVersion: app.getVersion(),
+      }, service.shareWithWebview), service.recipe);
     }
   }
 

@@ -4,6 +4,7 @@ import DelayAppComponent from './Component';
 
 import { DEFAULT_FEATURES_CONFIG } from '../../config';
 import { gaEvent, gaPage } from '../../lib/analytics';
+import { getUserWorkspacesRequest } from '../workspaces/api';
 
 const debug = require('debug')('Franz:feature:delayApp');
 
@@ -33,7 +34,13 @@ export default function init(stores) {
   };
 
   reaction(
-    () => stores.user.isLoggedIn && stores.services.allServicesRequest.wasExecuted && stores.features.features.needToWaitToProceed && !stores.user.data.isPremium,
+    () => (
+      stores.user.isLoggedIn
+      && stores.services.allServicesRequest.wasExecuted
+      && getUserWorkspacesRequest.wasExecuted
+      && stores.features.features.needToWaitToProceed
+      && !stores.user.data.isPremium
+    ),
     (isEnabled) => {
       if (isEnabled) {
         debug('Enabling `delayApp` feature');
@@ -60,12 +67,12 @@ export default function init(stores) {
             gaPage('/delayApp');
             gaEvent('DelayApp', 'show', 'Delay App Feature');
 
-            timeLastDelay = moment();
-            shownAfterLaunch = true;
 
             setTimeout(() => {
               debug('Resetting app delay');
 
+              shownAfterLaunch = true;
+              timeLastDelay = moment();
               setVisibility(false);
             }, config.delayDuration + 1000); // timer needs to be able to hit 0
           } else {

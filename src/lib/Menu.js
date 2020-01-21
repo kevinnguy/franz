@@ -10,6 +10,7 @@ import { announcementActions } from '../features/announcements/actions';
 import { announcementsStore } from '../features/announcements';
 import { GA_CATEGORY_TODOS, todosStore } from '../features/todos';
 import { todoActions } from '../features/todos/actions';
+import { CUSTOM_WEBSITE_ID } from '../features/webControls/constants';
 
 const { app, Menu, dialog } = remote;
 
@@ -262,6 +263,10 @@ const menuItems = defineMessages({
     id: 'menu.todos.enableTodos',
     defaultMessage: '!!!Enable Todos',
   },
+  serviceGoHome: {
+    id: 'menu.services.goHome',
+    defaultMessage: '!!!Home',
+  },
 });
 
 function getActiveWebview() {
@@ -302,6 +307,9 @@ const _templateFactory = intl => [
         label: intl.formatMessage(menuItems.pasteAndMatchStyle),
         accelerator: 'Cmd+Shift+V',
         selector: 'pasteAndMatchStyle:',
+        click() {
+          getActiveWebview().pasteAndMatchStyle();
+        },
       },
       {
         label: intl.formatMessage(menuItems.delete),
@@ -548,6 +556,11 @@ const _titleBarTemplateFactory = intl => [
     visible: workspaceStore.isFeatureEnabled,
   },
   {
+    label: intl.formatMessage(menuItems.todos),
+    submenu: [],
+    visible: todosStore.isFeatureEnabled,
+  },
+  {
     label: intl.formatMessage(menuItems.window),
     submenu: [
       {
@@ -623,7 +636,9 @@ export default class FranzMenu {
     // need to clone object so we don't modify computed (cached) object
     const serviceTpl = Object.assign([], this.serviceTpl());
 
-    if (window.franz === undefined) {
+    // Don't initialize when window.franz is undefined or when we are on a payment window route
+    if (window.franz === undefined || this.stores.router.location.pathname.startsWith('/payment/')) {
+      console.log('skipping menu init');
       return;
     }
 
@@ -664,8 +679,12 @@ export default class FranzMenu {
       accelerator: `${cmdKey}+R`,
       click: () => {
         if (this.stores.user.isLoggedIn
-          && this.stores.services.enabled.length > 0) {
-          this.actions.service.reloadActive();
+        && this.stores.services.enabled.length > 0) {
+          if (this.stores.services.active.recipe.id === CUSTOM_WEBSITE_ID) {
+            this.stores.services.active.webview.reload();
+          } else {
+            this.actions.service.reloadActive();
+          }
         } else {
           window.location.reload();
         }
@@ -862,8 +881,22 @@ export default class FranzMenu {
       checked: service.isActive,
       click: () => {
         this.actions.service.setActive({ serviceId: service.id });
+
+        if (isMac && i === 0) {
+          app.mainWindow.restore();
+        }
       },
     })));
+
+    if (services.active && services.active.recipe.id === CUSTOM_WEBSITE_ID) {
+      menu.push({
+        type: 'separator',
+      }, {
+        label: intl.formatMessage(menuItems.serviceGoHome),
+        accelerator: `${cmdKey}+shift+H`,
+        click: () => this.actions.service.reloadActive(),
+      });
+    }
 
     return menu;
   }
@@ -943,12 +976,12 @@ export default class FranzMenu {
         gaEvent(GA_CATEGORY_TODOS, 'toggleDrawer', 'menu');
       },
       enabled: this.stores.user.isLoggedIn && isFeatureEnabledByUser,
-    }, {
-      type: 'separator',
     });
 
     if (!isFeatureEnabledByUser) {
       menu.push({
+        type: 'separator',
+      }, {
         label: intl.formatMessage(menuItems.enableTodos),
         click: () => {
           todoActions.toggleTodosFeatureVisibility();

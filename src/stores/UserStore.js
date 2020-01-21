@@ -77,6 +77,8 @@ export default class UserStore extends Store {
 
   @observable logoutReason = null;
 
+  fetchUserInfoInterval = null;
+
   constructor(...args) {
     super(...args);
 
@@ -161,7 +163,7 @@ export default class UserStore extends Store {
   }
 
   @computed get isPremiumOverride() {
-    return ((!this.team || !this.team.plan) && this.isPremium) || (this.team.state === 'expired' && this.isPremium);
+    return ((!this.team || !this.team.plan) && this.isPremium) || (this.team && this.team.state === 'expired' && this.isPremium);
   }
 
   @computed get isPersonal() {
@@ -203,7 +205,7 @@ export default class UserStore extends Store {
   }
 
   @action async _signup({
-    firstname, lastname, email, password, accountType, company,
+    firstname, lastname, email, password, accountType, company, plan, currency,
   }) {
     const authToken = await this.signupRequest.execute({
       firstname,
@@ -213,6 +215,8 @@ export default class UserStore extends Store {
       accountType,
       company,
       locale: this.stores.app.locale,
+      plan,
+      currency,
     });
 
     this.hasCompletedSignup = false;
