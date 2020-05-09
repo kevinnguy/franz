@@ -28,7 +28,10 @@ import { sleep } from '../helpers/async-helpers';
 const debug = require('debug')('Franz:AppStore');
 
 const {
-  app, systemPreferences, screen, powerMonitor,
+  app,
+  screen,
+  powerMonitor,
+  nativeTheme,
 } = remote;
 
 const mainWindow = remote.getCurrentWindow();
@@ -136,7 +139,7 @@ export default class AppStore extends Store {
       this.stores.user.getUserInfoRequest.invalidate({ immediately: true });
       this.stores.features.featuresRequest.invalidate({ immediately: true });
       this.stores.news.latestNewsRequest.invalidate({ immediately: true });
-    }, ms('10m'));
+    }, ms('60m'));
 
     // Check for updates once every 4 hours
     setInterval(() => this._checkForUpdates(), CHECK_INTERVAL);
@@ -182,7 +185,7 @@ export default class AppStore extends Store {
 
     this._healthCheck();
 
-    this.isSystemDarkModeEnabled = systemPreferences.isDarkMode();
+    this.isSystemDarkModeEnabled = nativeTheme.shouldUseDarkColors;
 
     onVisibilityChange((isVisible) => {
       this.isFocused = isVisible;
@@ -195,36 +198,27 @@ export default class AppStore extends Store {
       gaPage(pathname);
     });
 
-    powerMonitor.on('suspend', () => {
-      debug('System suspended starting timer');
-
-      this.timeSuspensionStart = moment();
-    });
-
     powerMonitor.on('resume', () => {
-      debug('System resumed, last suspended on', this.timeSuspensionStart.toString());
+      debug('System resumed');
 
-      if (this.timeSuspensionStart.add(10, 'm').isBefore(moment())) {
-        debug('Reloading services, user info and features');
+      this.actions.service.resetLastPollTimer();
 
-        setTimeout(() => {
-          window.location.reload();
-        }, ms('2s'));
-
-        statsEvent('resumed-app');
-      }
+      statsEvent('resumed-app');
     });
 
     // macOS catalina notifications hack
     // notifications got stuck after upgrade but forcing a notification
     // via `new Notification` triggered the permission request
-    if (isMac && !localStorage.getItem(CATALINA_NOTIFICATION_HACK_KEY)) {
-      // eslint-disable-next-line no-new
-      new window.Notification('Welcome to Franz 5', {
-        body: 'Have a wonderful day & happy messaging.',
-      });
+    if (isMac) {
+      if (!localStorage.getItem(CATALINA_NOTIFICATION_HACK_KEY)) {
+        debug('Triggering macOS Catalina notification permission trigger');
+        // eslint-disable-next-line no-new
+        new window.Notification('Welcome to Franz 5', {
+          body: 'Have a wonderful day & happy messaging.',
+        });
 
-      localStorage.setItem(CATALINA_NOTIFICATION_HACK_KEY, true);
+        localStorage.setItem(CATALINA_NOTIFICATION_HACK_KEY, true);
+      }
     }
 
     statsEvent('app-start');

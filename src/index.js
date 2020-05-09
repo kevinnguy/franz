@@ -8,8 +8,17 @@ import isDevMode from 'electron-is-dev';
 import fs from 'fs-extra';
 import path from 'path';
 import windowStateKeeper from 'electron-window-state';
+import { enforceMacOSAppLocation } from 'electron-util';
 
 // Set app directory before loading user modules
+if (process.env.FRANZ_APPDATA_DIR != null) {
+  app.setPath('appData', process.env.FRANZ_APPDATA_DIR);
+  app.setPath('userData', path.join(app.getPath('appData')));
+} else if (process.platform === 'win32') {
+  app.setPath('appData', process.env.APPDATA);
+  app.setPath('userData', path.join(app.getPath('appData'), app.getName()));
+}
+
 if (isDevMode) {
   app.setPath('userData', path.join(app.getPath('appData'), 'FranzDev'));
 }
@@ -26,6 +35,7 @@ import Tray from './lib/Tray';
 import Settings from './electron/Settings';
 import handleDeepLink from './electron/deepLinking';
 import { isPositionValid } from './electron/windowUtils';
+import askFormacOSPermissions from './electron/macOSPermissions';
 import { appId } from './package.json'; // eslint-disable-line import/no-unresolved
 import './electron/exception';
 
@@ -35,9 +45,14 @@ import {
 } from './config';
 import { asarPath } from './helpers/asar-helpers';
 import { isValidExternalURL } from './helpers/url-helpers';
-/* eslint-enable import/first */
+import userAgent from './helpers/userAgent-helpers';
 
+/* eslint-enable import/first */
 const debug = require('debug')('Franz:App');
+
+// Globally set useragent to fix user agent override in service workers
+debug('Set userAgent to ', userAgent());
+app.userAgentFallback = userAgent();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -155,6 +170,7 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: true,
       webviewTag: true,
+      enableRemoteModule: true,
     },
   });
 
@@ -262,6 +278,10 @@ const createWindow = () => {
     }
   });
 
+  if (isMac) {
+    askFormacOSPermissions();
+  }
+
   mainWindow.on('show', () => {
     debug('Skip taskbar: false');
     mainWindow.setSkipTaskbar(false);
@@ -298,6 +318,9 @@ if (argv['auth-negotiate-delegate-whitelist']) {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  // force app to live in /Applications
+  enforceMacOSAppLocation();
+
   // Register App URL
   app.setAsDefaultProtocolClient('franz');
 
